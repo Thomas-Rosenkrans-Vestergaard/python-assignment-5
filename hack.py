@@ -22,4 +22,16 @@ def sequential_hack(on_complete):
             return
     
     on_complete(password)
-    
+
+def parallel_check_password(password):
+    if check_password(password):
+        print(password)
+
+def parallel_hack(on_complete):
+    passwords = list(find_combinations())
+    pool = Pool(os.cpu_count())
+    i = pool.map_async(parallel_check_password, passwords, chunksize = 1)
+    i.wait()
+
+if __name__ == '__main__':
+    parallel_hack(print)
