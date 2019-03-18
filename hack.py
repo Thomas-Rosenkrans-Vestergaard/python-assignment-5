@@ -8,60 +8,18 @@ def find_combinations():
     for a in ascii_letters:
         for b in ascii_letters:    
             yield a + b
-            
-def send_request(password):
-    response = requests.post('http://127.0.0.1:5000/auth',json={"password": password}, headers = {'Content-Type': 'application/json'})
-    print(password + '=' + str(response.status_code))
+
+def check_password(password):
+    data = {"password": password}
+    headers = {'Content-Type': 'application/json'}
+    response = requests.post('http://127.0.0.1:5000/auth', json=data, headers=headers)
     return response.status_code == 200
 
-def timing(f):
-    def wrap(*args):
-        time1 = time.time()
-        ret = f(*args)
-        time2 = time.time()
-        print('{:s} function took {:.3f} ms'.format(f.__name__, (time2-time1)*1000.0))
-
-        return ret
-    return wrap
-
-@timing
-def sequential_hack():
+def sequential_hack(on_complete):
     for password in find_combinations():
-        if send_request(password):
-            return password
+        if check_password(password):
+            on_complete(password)
+            return
     
-    return None
-
-
-def attempt(p):
-    return {p: send_request(p)}
-
-@timing
-def parallel_late_hack():
-    with Pool(os.cpu_count()) as p:
-        return p.map(attempt, list(find_combinations()))
-
-
-def attempt_new(i, p, store):
-    if store.value == -1:
-        return
-    if send_request(p):
-        store.value = i
-
-def parallel_late_hack_new():
-    pool = Pool(3)
-    value = Value('i', -1)
-    passwords = list(find_combinations())
-    for i in range(len(passwords)):
-        pool.apply_async(attempt_new, args=(i, passwords[i], value))
-
-    pool.close()
-    pool.join()
-
-    print(passwords[value.value])
-
-if __name__ == '__main__':
-    print("password=" + sequential_hack())
-    print("password=" + str(parallel_late_hack_new()))
-
+    on_complete(password)
     
